@@ -1,4 +1,5 @@
 *~
-*.info
+.*
+!.gitignore
 Pipfile
 Pipfile.lock

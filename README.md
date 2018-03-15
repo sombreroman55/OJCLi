@@ -4,11 +4,11 @@ A command line script that allows you to submit a solution to the UVa Online Jud
 
 # Login Information
 
-The script currently looks for a file called `login.info` which is just a simple text file that should be stored in the same directory as this script. Hopefully later I will think of a more secure way for you to store your login information (my understanding is that plaintext is bad).
+The script currently looks for a file called `.logininfo` which is just a simple text file that should be stored in the same directory as this script. Create this file in a text editor and put your UVa username and password each on their own line. Hopefully later I will think of a more secure way for you to store your login information (my understanding is that plaintext is bad).
 
 # Dependencies
 
-This script uses the `requests` and `lxml` python modules.
+This script uses the `requests` and `lxml` python modules. If you have `pip`, installing `lxml` is rather easy, however `requests` can be a bit trickier.
 
 # Using the Client
 
