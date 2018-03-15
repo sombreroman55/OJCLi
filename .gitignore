@@ -1,0 +1,4 @@
+*~
+*.info
+Pipfile
+Pipfile.lock
