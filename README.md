@@ -14,10 +14,20 @@ This script uses the `requests` and `lxml` python modules. If you have `pip`, in
 
 To run the client, assuming you are in the same directory as the script, type the command:
 ```bash
-python uvacli.py <source file>
+python uvacli.py <source>
 ```
 
 If you were not in the same directory, replace the `uvacli.py` with `path/to/file/uvacli.py`.
+
+Or you can do what I do which is to symbolically link to wherever the script is on your machine from your home directory. On mac or Linux it would look something like this:
+```bash
+ln -s ~/absolute/path/to/script/uvacli.py ~/uvacli.py
+```
+Now the command above just becomes
+```bash
+python ~/uvacli.py <source>
+```
+and you're good to go!
 
 # More Options
 
