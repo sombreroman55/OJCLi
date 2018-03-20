@@ -9,6 +9,8 @@ from sessions import read_session, write_session
 
 _DEBUG = True
 
+def L
+
 # Main method
 def main():
     # Get user information from .logininfo file
@@ -26,10 +28,7 @@ def main():
         print "Log in failed."
         exit(1) 
     
-    pick = read_session()
-    if pick is not None:
-        print("Session file exists and is valid.")
-    exit(0)
+    exit(0) # Exited successfully
 
 if __name__ == "__main__":
     main()

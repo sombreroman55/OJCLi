@@ -8,35 +8,37 @@ The script currently looks for a file called `.logininfo` which is just a simple
 
 # Dependencies
 
-This script uses the `requests` and `lxml` python modules. If you have `pip`, installing `lxml` is rather easy, however `requests` can be a bit trickier.
+This script uses the `requests`, `BeautifulSoup`, and `lxml` python modules. If you have `pip`, installing `lxml` and `BeautifulSoup` is rather easy, however `requests` can be a bit trickier.
 
 # Using the Client
 
-To run the client, assuming you are in the same directory as the script, type the command:
-```bash
-python uvacli.py <source>
-```
+After downloading the script whereever you wish, I recommend symlinking to the script from your home directory to allow you to easily access it. Run the following command in macOS/Linux to do so:
 
-If you were not in the same directory, replace the `uvacli.py` with `path/to/file/uvacli.py`.
-
-Or you can do what I do which is to symbolically link to wherever the script is on your machine from your home directory. On mac or Linux it would look something like this:
 ```bash
 ln -s ~/absolute/path/to/script/uvacli.py ~/uvacli.py
 ```
-Now the command above just becomes
+
+To run the client, you must run the script with one of the following flags and arguments:
+
+### Submitting a solution
+
+Run the command:
 ```bash
-python ~/uvacli.py <source>
+python ~/uvacli.py -s <language> <problem-id> <file>
 ```
-and you're good to go!
+Where `-s` stands for "submit". The arguments necessary for the script to submit your solution are the language of your solution, which must be one of the following: c, java, c++, pascal, c++11, python; the problem id of the problem you wish to submit; and finally the file itself.
 
-# More Options
+### Seeing submissions
 
-The client will try to predict the language and problem number based on the file name of your source file. If it is not of the form `XXXXX.y` where `XXXXX` represents the 5-digit numerical problem ID (for example, 00100, 11677, 01132, etc.) and `.y` represents the file extension of the language you used (i.e. `.c`, `.java`, etc.), it will not predict correctly. In that case, or if you want to specify anyway, you can use the following flags while submitting:
+Run the command:
+```bash
+python ~/uvacli.py -v [--limit #/--all]
+```
+Where `-v` stands for "verdicts". Optionally, you can append the `--limit #` option where # is the number of the most recent submissions you wish to see, or the `--all` option, which returns all of your submissions. Without the optional flags, the default number of recent submission is 25.
 
-| Flag  | Function                  | Usage                                       |
-| ----- | ------------------------- | ------------------------------------------- |
-| -h    | Shows help, lists options | `python uvacli.py -h`                       |
-| -p    | Overrides problem guess   | `python uvacli.py -p <problem-id> <source>` |
-| -m    | Overrides mainclass guess | `python uvacli.py -m <mainclass> <source>`  | 
-| -l    | Overrides language guess  | `python uvacli.py -l <language> <source>`   |
-| -f    | Forces submission         | `python uvacli.py -f <source>`              |
+### Seeing submissions for a specific problem
+Run the command:
+```bash
+python ~/uvacli.py -pv <problem-id>
+```
+Where `-pv` stands for "problem-id verdicts". This will return all submissions for the given problem ID.
