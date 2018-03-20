@@ -1,47 +1,35 @@
+import os
+import sys
 import requests
-from lxml import html
+import argparse
+from pprint import pprint
+from login import login, logged_in_successfully
+from submit import submit
+from sessions import read_session, write_session
 
-LOGIN_URL = 'https://uva.onlinejudge.org'
-SUBMIT_URL = 'https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=25'
 _DEBUG = True
-_LANGUAGE_GUESS = {
-    '.c': 'C',
-    '.cc': 'C++',
-    '.cpp': 'C++',
-    '.h': 'C++',
-    '.java': 'Java',
-    '.pas': 'Pascal',
-    '.py': 'Python'
-}
-_MAINCLASS_GUESS = { 'Java', 'Python' }
 
 # Main method
 def main():
-    # Gather necessary payload data
-    sesh = requests.session()
-    login = sesh.get(LOGIN_URL)
-    login_html = html.fromstring(login.text)
-    hiddens = login_html.xpath(r'//form//input[@type="hidden"]')
-
-    # Create payload
-    payload = {x.attrib["name"]:x.attrib["value"] for x in hiddens}
-    f = open(".logininfo", 'r')
+    # Get user information from .logininfo file
+    f = open('.logininfo', 'r')
     lines = f.read().splitlines()
-    payload["username"] = lines[0]
-    payload["password"] = lines[1]
-    if (_DEBUG == True):
-        print(payload)
+    username = lines[0]
+    password = lines[1]
 
-    # Use payload to login
-    response = sesh.post(LOGIN_URL, data=payload)
-
-    # Navigate to submission page
-    submit = sesh.get(SUBMIT_URL)
-
-    # Submit file to online judge
+    # Login
+    sesh = login(username,password)
+    if logged_in_successfully(sesh):
+        print "Logged in successfully"
+        write_session(sesh)
+    else:
+        print "Log in failed."
+        exit(1) 
     
-
-    # Receive verdict
+    pick = read_session()
+    if pick is not None:
+        print("Session file exists and is valid.")
+    exit(0)
 
 if __name__ == "__main__":
     main()
