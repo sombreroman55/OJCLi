@@ -3,25 +3,30 @@ import configparser
 import json
 import os
 import random
-import re
 import sys
 import webbrowser
-from pprint import pprint
 
 import requests
 import requests.exceptions
 
-_DEBUG = True
 _LANGUAGE_GUESS = {
     '.c': 'ANSI C',
     '.c++': 'C++',
     '.cc': 'C++',
     '.cpp': 'C++',
     '.cxx': 'C++',
-    '.h': 'C++',
     '.java': 'Java',
     '.pas': 'Pascal',
     '.py': 'Python 3',
+}
+
+_LANGUAGE_VALUES = {
+    'ANSI C': 1,
+    'Java': 2,
+    'C++': 3,
+    'Pascal': 4,
+    'C++11': 5,
+    'Python 3': 6,
 }
 
 PROBLEM_VOLUMES = {
@@ -39,15 +44,14 @@ PROBLEM_VOLUMES = {
     130:100, 131:100, 132:100, 133:  4,
 }
 
+CFG = None
 USER_ID = None
 BASE_URL = 'https://uhunt.onlinejudge.org/api'
 _HEADERS = {'User-Agent': 'oj-cli-submit'}
 
-# hostname: onlinejudge.org
-# submissionurl: https://onlinejudge.org/index.php?option=com_onlinejudge&Itemid=25
-# submissionsurl: https://onlinejudge.org/index.php?option=com_onlinejudge&Itemid=9
-
+# ------------------------------------------------------------------------
 # Config functions
+# ------------------------------------------------------------------------
 class ConfigError(Exception):
     pass
 
@@ -85,25 +89,146 @@ def get_userid(name):
     full_url = BASE_URL + name_api
     response = requests.get(full_url)
     return str(response.json())
+# ------------------------------------------------------------------------
 
+
+
+# ------------------------------------------------------------------------
+# Various helper functions
+# ------------------------------------------------------------------------
+def get_longest_field(data, column):
+    longest = -1
+    for row in range(len(data)):
+        if len(str(data[row][column])) > longest:
+            longest = len(str(data[row][column]))
+    return longest
+
+def get_longest_fields(data):
+    longests = list()
+    for key in data[0].keys():
+        longests.append(get_longest_field(data, key))
+    return longests
+# ------------------------------------------------------------------------
+
+
+
+# ------------------------------------------------------------------------
 # Pretty printers
-def pretty_print_table(json_content):
-    print(json_content)
+# ------------------------------------------------------------------------
+def pretty_print_verdict(verdict_data):
     pass
 
-def pretty_print_progress(json_content):
-    print(json_content)
+def pretty_print_rank(rank_data):
+    keys_to_pop = ['old']
+    for k in keys_to_pop:
+        for row in range(len(rank_data)):
+            rank_data[row].pop(k, None)
+    print(rank_data)
+    col_widths = get_longest_fields(rank_data)
+    div = ""
+    for w in col_widths:
+        div += ("+-" + ('-' * (w+1)))
+    div += '+'
+    print(div)
+
+def pretty_print_progress(progress_data):
     pass
 
-# Command handlers
+def pretty_print_stats(stats_data):
+    pass
+# ------------------------------------------------------------------------
+
+
+
+# ------------------------------------------------------------------------
+# Submit Command
+# ------------------------------------------------------------------------
 def submit_a(args):
-    problem = args.problem if args.problem else None
-    language = args.language if args.language else None
-    submit(problem=problem, language=language)
+    global CFG
+    problem, ext = os.path.splitext(os.path.basename(args.files[0]))
+    language = _LANGUAGE_GUESS.get(ext, None)
 
-def submit(src_file=None, problem=None, language=None):
-    print("Submit command!")
+    if args.problem:
+        problem = args.problem
 
+    if args.language:
+        language = args.language
+
+    if language is None:
+        print('''\
+No language specified, and I failed to guess language from filename
+extension "%s"''' % (ext,))
+        sys.exit(1)
+
+    langnum = _LANGUAGE_VALUES[language]
+    files = list(set(args.files))
+
+    try:
+        login_reply = login_from_config(CFG)
+    except ConfigError as exc:
+        print(exc)
+        sys.exit(1)
+    except requests.exceptions.RequestException as err:
+        print('Login connection failed:', err)
+        sys.exit(1)
+
+    if not login_reply.status_code == 200:
+        print('Login failed.')
+        if login_reply.status_code == 403:
+            print('Incorrect username or password/token (403)')
+        elif login_reply.status_code == 404:
+            print('Incorrect login URL (404)')
+        else:
+            print('Status code:', login_reply.status_code)
+        sys.exit(1)
+
+    submit_url = get_url(CFG, 'submissionurl', 'submit')
+
+    if not args.force:
+        confirm_or_die(problem, language, files, mainclass, tag)
+
+    submit(login_reply.cookies, problem, langnum, files)
+
+def submit(cookies, problem, language, files):
+    submit_url = 'https://onlinejudge.org/index.php?option=com_onlinejudge&Itemid=25'
+    data = {'submit': 'true',
+            'language': language,
+            'localid': problem,
+            'script': 'true'}
+
+    codeupl = []
+    for f in files:
+        with open(f) as code:
+            codeupl.append(('codeupl',
+                              (os.path.basename(f),
+                               code.read(),
+                               'application/octet-stream')))
+
+    try:
+        result = requests.post(submit_url, data=data, files=codeupl, cookies=cookies, headers=_HEADERS)
+    except requests.exceptions.RequestException as err:
+        print('Submit connection failed:', err)
+        sys.exit(1)
+
+    if result.status_code != 200:
+        print('Submission failed.')
+        if result.status_code == 403:
+            print('Access denied (403)')
+        elif result.status_code == 404:
+            print('Incorrect submit URL (404)')
+        else:
+            print('Status code:', login_reply.status_code)
+        sys.exit(1)
+
+    plain_result = result.content.decode('utf-8').replace('<br />', '\n')
+    print(plain_result)
+# ------------------------------------------------------------------------
+
+
+
+# ------------------------------------------------------------------------
+# Verdict Command
+# ------------------------------------------------------------------------
 def verdict_a(args):
     problem = args.problem if args.problem else None
     if args.all:
@@ -124,9 +249,15 @@ def verdict(problem=None, limit=None):
 
     full_api = BASE_URL + verdict_api
     response = requests.get(full_api)
-    pretty_print_table(response.json())
+    pretty_print_verdict(response.json())
     return response.json()
+# ------------------------------------------------------------------------
 
+
+
+# ------------------------------------------------------------------------
+# Rank Command
+# ------------------------------------------------------------------------
 def rank_a(args):
     if args.surround and (args.above or args.below):
         print('-C/--surround cannot be used with -a/--above or -b/--below!')
@@ -145,8 +276,14 @@ def rank(above=0, below=0):
     rank_api = f'/ranklist/{USER_ID}/{above}/{below}'
     full_url = BASE_URL + rank_api
     response = requests.get(full_url)
-    pretty_print_table(response.json())
+    pretty_print_rank(response.json())
+# ------------------------------------------------------------------------
 
+
+
+# ------------------------------------------------------------------------
+# Random Command
+# ------------------------------------------------------------------------
 def random_prb_a(args):
     volume = args.volume if args.volume else None
     random_prb(volume=volume)
@@ -176,7 +313,13 @@ def random_prb(volume=None):
     if sys.stdin.readline().upper()[:-1] == 'Y':
         problem_url = f'https://onlinejudge.org/external/{volume}/{problem_vol_num}.pdf'
         webbrowser.open(problem_url)
+# ------------------------------------------------------------------------
 
+
+
+# ------------------------------------------------------------------------
+# Progress Command
+# ------------------------------------------------------------------------
 def progress_a(args):
     volume = args.volume if args.volume else None
     progress(volume=volume)
@@ -187,7 +330,13 @@ def progress(volume=None):
     data = verdict(problem=None, limit=None)
 
     print("Progress command!")
+# ------------------------------------------------------------------------
 
+
+
+# ------------------------------------------------------------------------
+# Stats Command
+# ------------------------------------------------------------------------
 def stats_a(args):
     submissions = args.submissions if args.submissions else False
     languages = args.languages if args.languages else False
@@ -198,10 +347,16 @@ def stats_a(args):
 
 def stats(submissions=True, languages=True, problems=True):
     print("Stats command!")
+# ------------------------------------------------------------------------
 
+
+
+# ------------------------------------------------------------------------
 # Main method
+# ------------------------------------------------------------------------
 def main():
     global USER_ID
+    global CFG
 
     parser = argparse.ArgumentParser(description='Perform Online Judge actions from the command line')
     subparsers = parser.add_subparsers(dest="cmd", help="Recognized commands", required=True)
@@ -262,12 +417,12 @@ def main():
     args = parser.parse_args()
 
     try:
-        cfg = get_config()
+        CFG = get_config()
     except ConfigError as exc:
         print(exc)
         sys.exit(1)
 
-    USER_ID = get_userid(cfg.get('user', 'username'))
+    USER_ID = get_userid(CFG.get('user', 'username'))
 
     args.func(args)
 
