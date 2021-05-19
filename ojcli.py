@@ -45,6 +45,10 @@ PROBLEM_VOLUMES = {
     130:100, 131:100, 132:100, 133:  4,
 }
 
+PROBLEM_DATA = None
+PNUM_TO_PID = None
+PID_TO_PNUM = None
+
 CFG = None
 USER_ID = None
 BASE_URL = 'https://uhunt.onlinejudge.org/api'
@@ -140,6 +144,32 @@ def get_longest_fields(data):
     for key in data[0].keys():
         longests.append(get_longest_field(data, key))
     return longests
+
+def get_problem_data():
+    problem_data_url = '/p'
+    full_url = BASE_URL + problem_data_url
+    response = requests.get(full_url)
+    data = dict()
+    for row in response.json():
+        data[row[0]] = row
+    return data
+
+def create_problem_lookups():
+    global PROBLEM_DATA
+    global PNUM_TO_PID
+    global PID_TO_PNUM 
+
+    PNUM_TO_PID = dict()
+    PID_TO_PNUM = dict()
+
+    for p in PROBLEM_DATA:
+        pid = PROBLEM_DATA[p][0]
+        pnum = PROBLEM_DATA[p][1]
+        PID_TO_PNUM[pid] = pnum
+        PNUM_TO_PID[pnum] = pid
+
+def get_verdicts():
+    pass
 # ------------------------------------------------------------------------
 
 
@@ -150,22 +180,22 @@ def get_longest_fields(data):
 def add_fg_color(text, color):
     if color in ANSI_BG_COLORS:
         text = ANSI_FG_COLORS[color] + text
-    if not ANSI_RESET in text:
-        text += ANSI_RESET
+        if not ANSI_RESET in text:
+            text += ANSI_RESET
     return text
 
 def add_bg_color(text, color):
     if color in ANSI_BG_COLORS:
         text = ANSI_BG_COLORS[color] + text
-    if not ANSI_RESET in text:
-        text += ANSI_RESET
+        if not ANSI_RESET in text:
+            text += ANSI_RESET
     return text
 
 def add_decoration(text, decoration):
     if decoration in ANSI_DECORATIONS:
         text = ANSI_DECORATIONS[decoration] + text
-    if not ANSI_RESET in text:
-        text += ANSI_RESET
+        if not ANSI_RESET in text:
+            text += ANSI_RESET
     return text
 # ------------------------------------------------------------------------
 
@@ -179,10 +209,9 @@ def display_len(text):
     for char in text:
         res += 2 if unicodedata.east_asian_width(char) == 'W' else 1
     return res
-    pass
 
 def pretty_print_verdict(verdict_data):
-    pass
+    print(verdict_data)
 
 def pretty_print_rank(rank_data):
     global USER_ID
@@ -190,6 +219,7 @@ def pretty_print_rank(rank_data):
         print("No rank data provided.")
         return
 
+    print('\n')
     keys_to_pop = ['old', 'activity']
     for k in keys_to_pop:
         for row in range(len(rank_data)):
@@ -210,7 +240,7 @@ def pretty_print_rank(rank_data):
         line += '| '
         if diff % 2 == 1:
             line += ' '
-        line += (' ' * pad) + rank_keys[i] + (' ' * pad)
+        line += (' ' * pad) + rank_keys[i].upper() + (' ' * pad)
         line += ' '
     line += '|'
     print(line)
@@ -228,7 +258,7 @@ def pretty_print_rank(rank_data):
                 kstr = str(r[rkeys[i]])
 
             if user:
-                kstr = add_fg_color(kstr, 'magenta')
+                kstr = add_fg_color(kstr, 'yellow')
                 kstr = add_decoration(kstr, 'bold')
 
             diff = col_widths[i] - klen
@@ -241,9 +271,36 @@ def pretty_print_rank(rank_data):
         line += '|'
         print(line)
         print(div)
+    print('\n')
 
-def pretty_print_progress(progress_data):
-    pass
+def pretty_print_progress(progress_data, volume):
+    global PROBLEM_VOLUMES
+
+    print('\n')
+    title = ('*' * 55) + ' PROGRESS ' + ('*' * 55)
+    print(title)
+    if volume:
+        p = (progress_data[volume] * 100) // PROBLEM_VOLUMES[volume]
+        line = "Volume %3d   [" % volume
+        line += '=' * p
+        line += ' ' * (100-p)
+        line += '] %3d%%' % p
+        print(line)
+    else:
+        blue = True
+        for v in progress_data:
+            p = (progress_data[v] * 100) // PROBLEM_VOLUMES[v]
+            line = "Volume %3d   [" % v
+            line += '=' * p
+            line += ' ' * (100-p)
+            line += '] %3d%%' % p
+            if blue:
+                line = add_fg_color(line, 'blue')
+            else:
+                line = add_fg_color(line, 'red')
+            blue = not blue
+            print(line)
+    print('\n')
 
 def pretty_print_stats(stats_data):
     pass
@@ -292,11 +349,6 @@ extension "%s"''' % (ext,))
         else:
             print('Status code:', login_reply.status_code)
         sys.exit(1)
-
-    submit_url = get_url(CFG, 'submissionurl', 'submit')
-
-    if not args.force:
-        confirm_or_die(problem, language, files, mainclass, tag)
 
     submit(login_reply.cookies, problem, langnum, files)
 
@@ -348,7 +400,7 @@ def verdict_a(args):
         limit = args.limit if args.limit else 25
     verdict(problem=problem, limit=limit)
 
-def verdict(problem=None, limit=None):
+def get_verdicts(problem=None, limit=None):
     global USER_ID
     if not problem:
         if not limit:
@@ -360,8 +412,11 @@ def verdict(problem=None, limit=None):
 
     full_api = BASE_URL + verdict_api
     response = requests.get(full_api)
-    pretty_print_verdict(response.json())
     return response.json()
+
+def verdict(problem=None, limit=None):
+    vdata = get_verdicts(problem=problem, limit=limit)
+    pretty_print_verdict(vdata)
 # ------------------------------------------------------------------------
 
 
@@ -437,10 +492,23 @@ def progress_a(args):
 
 def progress(volume=None):
     global PROBLEM_VOLUMES
+    global PID_TO_PNUM
 
-    data = verdict(problem=None, limit=None)
+    data = get_verdicts(problem=None, limit=None)
+    data = data['subs']
+    nums = set()
+    for i in range(len(data)):
+        if data[i][2] == 90:
+            nums.add(PID_TO_PNUM[data[i][1]])
+    pdata = dict()
+    for k in PROBLEM_VOLUMES.keys():
+        pdata[k] = 0
 
-    print("Progress command!")
+    for n in nums:
+        idx = n // 100
+        pdata[idx] += 1
+
+    pretty_print_progress(pdata, volume)
 # ------------------------------------------------------------------------
 
 
@@ -466,8 +534,12 @@ def stats(submissions=True, languages=True, problems=True):
 # Main method
 # ------------------------------------------------------------------------
 def main():
+    global PROBLEM_DATA
     global USER_ID
     global CFG
+
+    PROBLEM_DATA = get_problem_data()
+    create_problem_lookups()
 
     parser = argparse.ArgumentParser(description='Perform Online Judge actions from the command line')
     subparsers = parser.add_subparsers(dest="cmd", help="Recognized commands", required=True)
