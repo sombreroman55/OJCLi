@@ -434,15 +434,31 @@ def rank_a(args):
     else:
         above = args.above if args.above else 0
         below = args.below if args.below else 0
-    rank(above=above, below=below)
+    _next = args.next if args.next else 0
+    rank(above=above, below=below, _next=_next)
 
-def rank(above=0, below=0):
+def rank(above=0, below=0, _next=0):
     global USER_ID
 
     rank_api = f'/ranklist/{USER_ID}/{above}/{below}'
     full_url = BASE_URL + rank_api
     response = requests.get(full_url)
-    pretty_print_rank(response.json())
+    rdata = response.json()
+
+    if _next > 0:
+        rank_api = f'/ranklist/{USER_ID}/{_next}/0'
+        full_url = BASE_URL + rank_api
+        response = requests.get(full_url)
+        data = response.json()
+        acs_needed = data[0]['ac'] - data[-1]['ac']
+        desired_rank = data[0]['rank']
+        line = 'Need ' 
+        line += add_fg_color(f'{acs_needed}', 'green')
+        line += f' more accepted solutions to reach rank {desired_rank}.\n'
+        pretty_print_rank(rdata)
+        print(line)
+    else:
+        pretty_print_rank(rdata)
 # ------------------------------------------------------------------------
 
 
@@ -573,6 +589,8 @@ def main():
         help="Return usernames and ranks of N users below your rank.")
     rank_parser.add_argument('-C', '--surround', type=int,
         help="Return usernames and ranks of N users above and below your rank.")
+    rank_parser.add_argument('-n', '--next', type=int,
+        help="Show how many more accepted problems needed to ascend N ranks.")
     rank_parser.set_defaults(func=rank_a)
 
     # random sub-comand options
