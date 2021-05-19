@@ -4,6 +4,7 @@ import json
 import os
 import random
 import sys
+import unicodedata
 import webbrowser
 
 import requests
@@ -48,6 +49,37 @@ CFG = None
 USER_ID = None
 BASE_URL = 'https://uhunt.onlinejudge.org/api'
 _HEADERS = {'User-Agent': 'oj-cli-submit'}
+
+# Only supporting 8 color mode for now
+ANSI_FG_COLORS = {
+    'black': '\u001b[30m',
+    'red': '\u001b[31m',
+    'green': '\u001b[32m',
+    'yellow': '\u001b[33m',
+    'blue': '\u001b[34m',
+    'magenta': '\u001b[35m',
+    'cyan': '\u001b[36m',
+    'white': '\u001b[37m',
+}
+
+ANSI_BG_COLORS = {
+    'black': '\u001b[40m',
+    'red': '\u001b[41m',
+    'green': '\u001b[42m',
+    'yellow': '\u001b[43m',
+    'blue': '\u001b[44m',
+    'magenta': '\u001b[45m',
+    'cyan': '\u001b[46m',
+    'white': '\u001b[47m',
+}
+
+ANSI_DECORATIONS = {
+    'bold': '\u001b[1m',
+    'underline': '\u001b[4m',
+    'reverse': '\u001b[7m'
+}
+
+ANSI_RESET = '\u001b[0m'
 
 # ------------------------------------------------------------------------
 # Config functions
@@ -113,23 +145,102 @@ def get_longest_fields(data):
 
 
 # ------------------------------------------------------------------------
+# Coloring functions
+# ------------------------------------------------------------------------
+def add_fg_color(text, color):
+    if color in ANSI_BG_COLORS:
+        text = ANSI_FG_COLORS[color] + text
+    if not ANSI_RESET in text:
+        text += ANSI_RESET
+    return text
+
+def add_bg_color(text, color):
+    if color in ANSI_BG_COLORS:
+        text = ANSI_BG_COLORS[color] + text
+    if not ANSI_RESET in text:
+        text += ANSI_RESET
+    return text
+
+def add_decoration(text, decoration):
+    if decoration in ANSI_DECORATIONS:
+        text = ANSI_DECORATIONS[decoration] + text
+    if not ANSI_RESET in text:
+        text += ANSI_RESET
+    return text
+# ------------------------------------------------------------------------
+
+
+
+# ------------------------------------------------------------------------
 # Pretty printers
 # ------------------------------------------------------------------------
+def display_len(text):
+    res = 0
+    for char in text:
+        res += 2 if unicodedata.east_asian_width(char) == 'W' else 1
+    return res
+    pass
+
 def pretty_print_verdict(verdict_data):
     pass
 
 def pretty_print_rank(rank_data):
-    keys_to_pop = ['old']
+    global USER_ID
+    if not rank_data:
+        print("No rank data provided.")
+        return
+
+    keys_to_pop = ['old', 'activity']
     for k in keys_to_pop:
         for row in range(len(rank_data)):
             rank_data[row].pop(k, None)
-    print(rank_data)
+    rank_keys = list(rank_data[0].keys())
     col_widths = get_longest_fields(rank_data)
     div = ""
+    for i in range(len(col_widths)):
+        col_widths[i] = max(col_widths[i], len(rank_keys[i]))
     for w in col_widths:
         div += ("+-" + ('-' * (w+1)))
     div += '+'
     print(div)
+    line = ""
+    for i in range(len(col_widths)):
+        diff = col_widths[i] - len(rank_keys[i])
+        pad = diff // 2
+        line += '| '
+        if diff % 2 == 1:
+            line += ' '
+        line += (' ' * pad) + rank_keys[i] + (' ' * pad)
+        line += ' '
+    line += '|'
+    print(line)
+    print(div)
+    for r in rank_data:
+        line = ""
+        user = r['userid'] == int(USER_ID)
+        rkeys = list(r.keys())
+        for i in range(len(col_widths)):
+            if isinstance(r[rkeys[i]], int):
+                klen = len(str(r[rkeys[i]]))
+                kstr = str(r[rkeys[i]])
+            elif isinstance(r[rkeys[i]], str):
+                klen = display_len(r[rkeys[i]])
+                kstr = str(r[rkeys[i]])
+
+            if user:
+                kstr = add_fg_color(kstr, 'magenta')
+                kstr = add_decoration(kstr, 'bold')
+
+            diff = col_widths[i] - klen
+            pad = diff // 2
+            line += '| '
+            if diff % 2 == 1:
+                line += ' '
+            line += (' ' * pad) + kstr + (' ' * pad)
+            line += ' '
+        line += '|'
+        print(line)
+        print(div)
 
 def pretty_print_progress(progress_data):
     pass
