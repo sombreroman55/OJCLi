@@ -287,19 +287,31 @@ def pretty_print_progress(progress_data, volume):
         line += '] %3d%%' % p
         print(line)
     else:
-        blue = True
+        total_ac = 0
+        total_p = 0
+        white = True
         for v in progress_data:
+            total_ac += progress_data[v]
+            total_p += PROBLEM_VOLUMES[v]
             p = (progress_data[v] * 100) // PROBLEM_VOLUMES[v]
             line = "Volume %3d   [" % v
             line += '=' * p
             line += ' ' * (100-p)
             line += '] %3d%%' % p
-            if blue:
-                line = add_fg_color(line, 'blue')
+            if white:
+                line = add_fg_color(line, 'white')
             else:
-                line = add_fg_color(line, 'red')
-            blue = not blue
+                line = add_fg_color(line, 'yellow')
+            white = not white
             print(line)
+
+        p = (total_ac * 100) // total_p
+        line = "       ALL   ["
+        line += '=' * p
+        line += ' ' * (100-p)
+        line += '] %3d%%' % p
+        print(line)
+
     print('\n')
 
 def pretty_print_stats(stats_data):
