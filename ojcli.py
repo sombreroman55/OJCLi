@@ -167,9 +167,6 @@ def create_problem_lookups():
         pnum = PROBLEM_DATA[p][1]
         PID_TO_PNUM[pid] = pnum
         PNUM_TO_PID[pnum] = pid
-
-def get_verdicts():
-    pass
 # ------------------------------------------------------------------------
 
 
@@ -311,11 +308,14 @@ def pretty_print_progress(progress_data, volume):
         line += ' ' * (100-p)
         line += '] %3d%%' % p
         print(line)
-
+    print('-' * 120)
     print('\n')
 
-def pretty_print_stats(stats_data):
-    pass
+def pretty_print_stats(sub_data, lan_data):
+    if sub_data:
+        pass
+    if lan_data:
+        pass
 # ------------------------------------------------------------------------
 
 
@@ -547,13 +547,27 @@ def progress(volume=None):
 def stats_a(args):
     submissions = args.submissions if args.submissions else False
     languages = args.languages if args.languages else False
-    problems = args.problems if args.problems else False
-    if not submissions and not languages and not problems:
-        submissions = languages = problems = True
-    stats(submissions=submissions, languages=languages, problems=problems)
+    if not submissions and not languages:
+        submissions = languages = True
+    stats(submissions=submissions, languages=languages)
 
-def stats(submissions=True, languages=True, problems=True):
-    print("Stats command!")
+def stats(submissions=True, languages=True):
+    vdata = get_verdicts(problem=None, limit=None)
+    vdata = data['subs']
+    sdata = ldata = None
+    if submissions:
+        for i in range(len(vdata)):
+            ver = vdata[i][2]
+            if not ver in sdata:
+                sdata[ver] = 0
+            sdata[ver] += 1
+    if languages:
+        for i in range(len(vdata)):
+            lan = vdata[i][5]
+            if not lan in ldata:
+                ldata[ver] = 0
+            ldata[ver] += 1
+    pretty_print_stats(sdata, ldata)
 # ------------------------------------------------------------------------
 
 
@@ -570,10 +584,10 @@ def main():
     create_problem_lookups()
 
     parser = argparse.ArgumentParser(description='Perform Online Judge actions from the command line')
-    subparsers = parser.add_subparsers(dest="cmd", help="Recognized commands", required=True)
+    subparsers = parser.add_subparsers(dest="cmd", description="Recognized commands", required=True)
 
     # sumbit sub-comand options
-    submit_parser = subparsers.add_parser("submit")
+    submit_parser = subparsers.add_parser("submit", help="Submit a solution")
     submit_parser.add_argument('-p', '--problem', type=int,
         help="Specify problem(overrides problem best guess)")
     submit_parser.add_argument('-l', '--language', 
@@ -581,7 +595,7 @@ def main():
     submit_parser.set_defaults(func=submit_a)
 
     # verdict sub-comand options
-    verdict_parser = subparsers.add_parser("verdict")
+    verdict_parser = subparsers.add_parser("verdict", help="See verdict data")
     verdict_exclusive = verdict_parser.add_mutually_exclusive_group()
     verdict_parser.add_argument('-p', '--problem', type=int,
         help="Get verdicts for specific problem. Gets all verdicts if this option is omitted.")
@@ -592,7 +606,7 @@ def main():
     verdict_parser.set_defaults(func=verdict_a)
 
     # rank sub-comand options
-    rank_parser = subparsers.add_parser("rank")
+    rank_parser = subparsers.add_parser("rank", help="See world or problem-specific rank")
     rank_parser.add_argument('-p', '--problem', type=int,
         help="Get rank on a specific problem. Gets global user rank if this option is omitted.")
     rank_parser.add_argument('-a', '--above', type=int,
@@ -606,25 +620,23 @@ def main():
     rank_parser.set_defaults(func=rank_a)
 
     # random sub-comand options
-    random_parser = subparsers.add_parser("random")
+    random_parser = subparsers.add_parser("random", help="Get a random problem to solve")
     random_parser.add_argument('-v', '--volume', type=int,
         help="Restrict random choice to specific problem volume")
     random_parser.set_defaults(func=random_prb_a)
 
     # progress sub-comand options
-    progress_parser = subparsers.add_parser("progress")
+    progress_parser = subparsers.add_parser("progress", help="Show problem set progress")
     progress_parser.add_argument('-v', '--volume', type=int,
         help="Restrict progress to specific problem volume")
     progress_parser.set_defaults(func=progress_a)
 
     # stats sub-comand options
-    stats_parser = subparsers.add_parser("stats")
+    stats_parser = subparsers.add_parser("stats", help="Show statistics about submissions")
     stats_parser.add_argument('-s', '--submissions', action='store_true',
         help='Only show statistics on submissions')
     stats_parser.add_argument('-l', '--languages', action='store_true',
         help='Only show statistics on languages')
-    stats_parser.add_argument('-p', '--problems', action='store_true',
-        help='Only show statistics on solved problems')
     stats_parser.set_defaults(func=stats_a)
 
     args = parser.parse_args()
