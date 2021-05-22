@@ -1,5 +1,6 @@
 import argparse
 import configparser
+import datetime
 import json
 import os
 import random
@@ -255,14 +256,129 @@ def display_len(text):
         res += 2 if unicodedata.east_asian_width(char) == 'W' else 1
     return res
 
-def pretty_print_verdict(verdict_data):
-    print(verdict_data)
+def pretty_print_verdict(vdata):
+    global USER_ID
+
+    print('\n')
+    verdict_headers = ['PROBLEM', 'VERDICT', 'LANG', 'TIME', 'RANK', 'SUBMIT TIME']
+
+    col_widths = [-1] * 6
+    table_data = [None] * 6 
+    table_dlen = [None] * 6 
+
+    for i in range(6):
+        table_data[i] = list()
+        table_dlen[i] = list()
+
+    plong = -1
+    for row in range(len(vdata)):
+        pid = vdata[row][1]
+        ps = str(PROBLEM_DATA[pid][1]) + ' ' + str(PROBLEM_DATA[pid][2])
+        if len(ps) > plong:
+            plong = len(ps)
+        table_dlen[0].append(len(ps))
+        table_data[0].append(ps)
+    col_widths[0] = plong
+
+    vlong = -1
+    for row in range(len(vdata)):
+        ver = vdata[row][2]
+        vs = VERDICT_STRINGS[ver]
+        if len(vs) > vlong:
+            vlong = len(vs)
+        table_dlen[1].append(len(vs))
+        table_data[1].append(add_fg_color(vs, VERDICT_COLORS[ver]))
+    col_widths[1] = vlong
+
+    llong = -1
+    for row in range(len(vdata)):
+        lan = vdata[row][5]
+        ls = LANGUAGE_STRINGS[lan]
+        if len(ls) > llong:
+            llong = len(ls)
+        table_dlen[2].append(len(ls))
+        table_data[2].append(add_fg_color(ls, LANGUAGE_COLORS[lan]))
+    col_widths[2] = llong
+
+    for row in range(len(vdata)):
+        rt = int(vdata[row][3])
+        rt = '%1.3f' % (rt / 1000.0)
+        table_dlen[3].append(len(rt))
+        table_data[3].append(rt)
+    col_widths[3] = 5
+
+    rlong = -1
+    for row in range(len(vdata)):
+        rank = vdata[row][6]
+        rs = str(rank) if rank > 0 else '-'
+        if len(rs) > rlong:
+            rlong = len(rs)
+        table_dlen[4].append(len(rs))
+        table_data[4].append(rs)
+    col_widths[4] = rlong
+
+    slong = -1
+    for row in range(len(vdata)):
+        time = vdata[row][4]
+        ss = datetime.datetime.utcfromtimestamp(time).strftime('%Y-%m-%d %H:%M:%S')
+        if len(ss) > slong:
+            slong = len(ss)
+        table_dlen[5].append(len(ss))
+        table_data[5].append(ss)
+    col_widths[5] = slong
+
+    top_div = ""
+    div = ""
+    bottom_div = ""
+    for i in range(len(col_widths)):
+        col_widths[i] = max(col_widths[i], len(verdict_headers[i]))
+    for w in col_widths:
+        top_div += ('\u2566\u2550' + ('\u2550' * (w+1)))
+        div += ('\u256C\u2550' + ('\u2550' * (w+1)))
+        bottom_div += ('\u2569\u2550' + ('\u2550' * (w+1)))
+
+    top_div = top_div.replace('\u2566', '\u2554', 1)
+    top_div += '\u2557'
+
+    div = div.replace('\u256C', '\u2560', 1)
+    div += '\u2563'
+
+    bottom_div = bottom_div.replace('\u2569', '\u255A', 1)
+    bottom_div += '\u255D'
+    print(top_div)
+
+    line = ""
+    for i in range(len(col_widths)):
+        diff = col_widths[i] - len(verdict_headers[i])
+        pad = diff // 2
+        line += '\u2551 '
+        if diff % 2 == 1:
+            line += ' '
+        line += (' ' * pad) + add_decoration(verdict_headers[i].upper(), 'bold') + (' ' * pad)
+        line += ' '
+    line += '\u2551'
+    print(line)
+
+    for row in range(len(vdata)):
+        line = ''
+        for i in range(len(table_data)):
+            diff = col_widths[i] - table_dlen[i][row]
+            pad = diff // 2
+            line += '\u2551 '
+            if diff % 2 == 1:
+                line += ' '
+            line += (' ' * pad) + table_data[i][row] + (' ' * pad)
+            line += ' '
+        line += '\u2551'
+        print(div)
+        print(line)
+
+    print(bottom_div)
+    print('\n')
+
 
 def pretty_print_rank(rank_data):
     global USER_ID
-    if not rank_data:
-        print("No rank data provided.")
-        return
 
     print('\n')
     keys_to_pop = ['old', 'activity']
@@ -534,7 +650,14 @@ def get_verdicts(problem=None, limit=None):
     return response.json()
 
 def verdict(problem=None, limit=None):
+    global USER_ID
+
     vdata = get_verdicts(problem=problem, limit=limit)
+    if USER_ID in vdata:
+        vdata = vdata[USER_ID]
+    vdata = list(reversed(vdata['subs']))
+    if limit:
+        vdata = vdata[:limit]
     pretty_print_verdict(vdata)
 # ------------------------------------------------------------------------
 
@@ -716,8 +839,6 @@ def main():
 
     # rank sub-comand options
     rank_parser = subparsers.add_parser("rank", help="See world or problem-specific rank")
-    rank_parser.add_argument('-p', '--problem', type=int,
-        help="Get rank on a specific problem. Gets global user rank if this option is omitted.")
     rank_parser.add_argument('-a', '--above', type=int,
         help="Return usernames and ranks of N users above your rank.")
     rank_parser.add_argument('-b', '--below', type=int,
