@@ -10,7 +10,7 @@ import webbrowser
 import requests
 import requests.exceptions
 
-_LANGUAGE_GUESS = {
+LANGUAGE_GUESS = {
     '.c': 'ANSI C',
     '.c++': 'C++',
     '.cc': 'C++',
@@ -21,13 +21,61 @@ _LANGUAGE_GUESS = {
     '.py': 'Python 3',
 }
 
-_LANGUAGE_VALUES = {
-    'ANSI C': 1,
-    'Java': 2,
-    'C++': 3,
-    'Pascal': 4,
-    'C++11': 5,
-    'Python 3': 6,
+LANGUAGE_VALUES = {
+    'ANSI C':1,
+    'Java':2,
+    'C++':3,
+    'Pascal':4,
+    'C++11':5,
+    'Python 3':6,
+}
+
+LANGUAGE_STRINGS = {
+    1:'ANSI C',
+    2:'Java',
+    3:'C++',
+    4:'Pascal',
+    5:'C++11',
+    6:'Python 3'
+}
+
+LANGUAGE_COLORS = {
+    1:'white',
+    2:'magenta',
+    3:'yellow',
+    4:'green',
+    5:'red',
+    6:'blue',
+}
+
+VERDICT_STRINGS = {
+    10:'Submission Error',
+    15:'Can\'t Be Judged',
+    20:'In Queue',
+    30:'Compile Error',
+    35:'Restricted Function',
+    40:'Runtime Error',
+    45:'Output Limit',
+    50:'Time Limit',
+    60:'Memory Limit',
+    70:'Wrong Answer',
+    80:'Presentation Error',
+    90:'Accepted'
+}
+
+VERDICT_COLORS = {
+    10:'white',
+    15:'white',
+    20:'white',
+    30:'yellow',
+    35:'white',
+    40:'cyan',
+    45:'white',
+    50:'blue',
+    60:'black',
+    70:'red',
+    80:'magenta',
+    90:'green'
 }
 
 PROBLEM_VOLUMES = {
@@ -223,25 +271,38 @@ def pretty_print_rank(rank_data):
             rank_data[row].pop(k, None)
     rank_keys = list(rank_data[0].keys())
     col_widths = get_longest_fields(rank_data)
+    top_div = ""
     div = ""
+    bottom_div = ""
     for i in range(len(col_widths)):
         col_widths[i] = max(col_widths[i], len(rank_keys[i]))
     for w in col_widths:
-        div += ("+-" + ('-' * (w+1)))
-    div += '+'
-    print(div)
+        top_div += ('\u2566\u2550' + ('\u2550' * (w+1)))
+        div += ('\u256C\u2550' + ('\u2550' * (w+1)))
+        bottom_div += ('\u2569\u2550' + ('\u2550' * (w+1)))
+
+    top_div = top_div.replace('\u2566', '\u2554', 1)
+    top_div += '\u2557'
+
+    div = div.replace('\u256C', '\u2560', 1)
+    div += '\u2563'
+
+    bottom_div = bottom_div.replace('\u2569', '\u255A', 1)
+    bottom_div += '\u255D'
+    print(top_div)
+
     line = ""
     for i in range(len(col_widths)):
         diff = col_widths[i] - len(rank_keys[i])
         pad = diff // 2
-        line += '| '
+        line += '\u2551 '
         if diff % 2 == 1:
             line += ' '
-        line += (' ' * pad) + rank_keys[i].upper() + (' ' * pad)
+        line += (' ' * pad) + add_decoration(rank_keys[i].upper(), 'bold') + (' ' * pad)
         line += ' '
-    line += '|'
+    line += '\u2551'
     print(line)
-    print(div)
+
     for r in rank_data:
         line = ""
         user = r['userid'] == int(USER_ID)
@@ -260,28 +321,30 @@ def pretty_print_rank(rank_data):
 
             diff = col_widths[i] - klen
             pad = diff // 2
-            line += '| '
+            line += '\u2551 '
             if diff % 2 == 1:
                 line += ' '
             line += (' ' * pad) + kstr + (' ' * pad)
             line += ' '
-        line += '|'
-        print(line)
+        line += '\u2551'
         print(div)
+        print(line)
+
+    print(bottom_div)
     print('\n')
 
 def pretty_print_progress(progress_data, volume):
     global PROBLEM_VOLUMES
 
     print('\n')
-    title = ('*' * 55) + ' PROGRESS ' + ('*' * 55)
+    title = '\u2554' + ('\u2550' * 54) + ' PROGRESS ' + ('\u2550' * 54) + '\u2557'
     print(title)
     if volume:
         p = (progress_data[volume] * 100) // PROBLEM_VOLUMES[volume]
-        line = "Volume %3d   [" % volume
-        line += '=' * p
+        line = "\u2551 Volume %3d " % volume
+        line += '\u2580' * p
         line += ' ' * (100-p)
-        line += '] %3d%%' % p
+        line += ' %3d%% \u2551' % p
         print(line)
     else:
         total_ac = 0
@@ -291,31 +354,75 @@ def pretty_print_progress(progress_data, volume):
             total_ac += progress_data[v]
             total_p += PROBLEM_VOLUMES[v]
             p = (progress_data[v] * 100) // PROBLEM_VOLUMES[v]
-            line = "Volume %3d   [" % v
-            line += '=' * p
+            line = "Volume %3d " % v
+            line += '\u2580' * p
             line += ' ' * (100-p)
-            line += '] %3d%%' % p
+            line += ' %3d%%' % p
             if white:
                 line = add_fg_color(line, 'white')
             else:
                 line = add_fg_color(line, 'yellow')
             white = not white
+            line = '\u2551 ' + line + ' \u2551'
             print(line)
 
         p = (total_ac * 100) // total_p
-        line = "       ALL   ["
-        line += '=' * p
+        line = "       ALL "
+        line += '\u2580' * p
         line += ' ' * (100-p)
-        line += '] %3d%%' % p
+        line += ' %3d%%' % p
+        line = '\u2551 ' + line + ' \u2551'
         print(line)
-    print('-' * 120)
+    bottom = '\u255A' + ('\u2550' * 118) + '\u255D'
+    print(bottom)
     print('\n')
 
 def pretty_print_stats(sub_data, lan_data):
+    total_subs = 0
+    data = sub_data if sub_data else lan_data
+    for key in data:
+        total_subs += data[key]
+
     if sub_data:
-        pass
+        print('\n')
+        title = '\u2554' + ('\u2550' * 44) + ' VERDICT STATISTICS ' + ('\u2550' * 44) + '\u2557'
+        print(title)
+        sub_data = {k: v for k, v in sorted(sub_data.items(), key=lambda x: x[1], reverse=True)}
+        ticks = [(sub_data[x] * 100) // total_subs for x in sub_data]
+        i = 0
+        for key in sub_data:
+            line = '\u2551 '
+            cline = '%18s ' % VERDICT_STRINGS[key]
+            cline += ('\u2580' * ticks[i])
+            line += add_fg_color(cline, VERDICT_COLORS[key])
+            line += (' ' * (ticks[0] - ticks[i]))
+            line += '%4d submissions [%2d%%] \u2551' % (sub_data[key], ticks[i])
+            print(line)
+            i += 1
+        bottom = '\u255A' + ('\u2550' * 108) + '\u255D'
+        print(bottom)
+        print('\n')
+
     if lan_data:
-        pass
+        if not sub_data:
+            print('\n')
+        title = '\u2554' + ('\u2550' * 30) + ' LANGUAGE STATISTICS ' + ('\u2550' * 31) + '\u2557'
+        print(title)
+        lan_data = {k: v for k, v in sorted(lan_data.items(), key=lambda x: x[1], reverse=True)}
+        ticks = [(lan_data[x] * 100) // total_subs for x in lan_data]
+        i = 0
+        for key in lan_data:
+            line = '\u2551 '
+            cline = '%8s ' % LANGUAGE_STRINGS[key]
+            cline += ('\u2580' * ticks[i])
+            line += add_fg_color(cline, LANGUAGE_COLORS[key])
+            line += (' ' * (ticks[0] - ticks[i]))
+            line += '%4d submissions [%2d%%] \u2551' % (lan_data[key], ticks[i])
+            print(line)
+            i += 1
+        bottom = '\u255A' + ('\u2550' * 82) + '\u255D'
+        print(bottom)
+        print('\n')
 # ------------------------------------------------------------------------
 
 
@@ -326,7 +433,7 @@ def pretty_print_stats(sub_data, lan_data):
 def submit_a(args):
     global CFG
     problem, ext = os.path.splitext(os.path.basename(args.files[0]))
-    language = _LANGUAGE_GUESS.get(ext, None)
+    language = LANGUAGE_GUESS.get(ext, None)
 
     if args.problem:
         problem = args.problem
@@ -340,7 +447,7 @@ No language specified, and I failed to guess language from filename
 extension "%s"''' % (ext,))
         sys.exit(1)
 
-    langnum = _LANGUAGE_VALUES[language]
+    langnum = LANGUAGE_VALUES[language]
     files = list(set(args.files))
 
     try:
@@ -553,20 +660,22 @@ def stats_a(args):
 
 def stats(submissions=True, languages=True):
     vdata = get_verdicts(problem=None, limit=None)
-    vdata = data['subs']
+    vdata = vdata['subs']
     sdata = ldata = None
     if submissions:
+        sdata = dict()
         for i in range(len(vdata)):
             ver = vdata[i][2]
             if not ver in sdata:
                 sdata[ver] = 0
             sdata[ver] += 1
     if languages:
+        ldata = dict()
         for i in range(len(vdata)):
             lan = vdata[i][5]
             if not lan in ldata:
-                ldata[ver] = 0
-            ldata[ver] += 1
+                ldata[lan] = 0
+            ldata[lan] += 1
     pretty_print_stats(sdata, ldata)
 # ------------------------------------------------------------------------
 
