@@ -11,25 +11,106 @@ store your login information (my understanding is that plaintext is bad).
 
 # Dependencies
 
-This program is written for Python 3, and will therefore probably not work with Python 2. It uses the `requests`, `BeautifulSoup`, and `lxml` python modules. 
-If you have `pip`, installing `lxml` and `BeautifulSoup` is rather easy, however `requests` can be a bit trickier.
+This program is written for Python 3.5+, and will therefore not work with Python 2. Its only dependency is the `requests` module. 
 
 # Using the Client
 
-### Submitting a solution
-
-Run the command:
-```bash
-python3 ~/ojcli.py submit [language] [problem-id] <file>
 ```
-Where `-s` stands for "submit". The arguments necessary for the program to submit your solution are the language of your solution, which must be one of the following: c, java, c++, pascal, c++11, python; the problem id of the problem you wish to submit; and finally the file itself.
+usage: ojcli.py [-h] {submit,verdict,rank,random,progress,stats} ...
 
-### Seeing submissions
+Perform Online Judge actions from the command line
 
-Run the command:
-```bash
-python3 ~/ojcli.py verdict [problem] [--limit #/--all]
+optional arguments:
+  -h, --help            show this help message and exit
+
+subcommands:
+  Recognized commands
+
+  {submit,verdict,rank,random,progress,stats}
+    submit              Submit a solution
+    verdict             See verdict data
+    rank                See world or problem-specific rank
+    random              Get a random problem to solve
+    progress            Show problem set progress
+    stats               Show statistics about submissions
 ```
-Where `-v` stands for "verdicts". Optionally, you can append the `--limit #` option where # is the number of the most recent submissions you wish to see, or the `--all` option, which returns all of your submissions. Without the optional flags, the default number of recent submission is 25.
 
-### Statistics
+### submit
+
+```
+usage: ojcli.py submit [-h] [-p PROBLEM] [-l LANGUAGE] files [files ...]
+
+positional arguments:
+  files
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PROBLEM, --problem PROBLEM
+                        Specify problem(overrides problem best guess)
+  -l LANGUAGE, --language LANGUAGE
+                        Specify programming language (overrides language best guess)
+
+```
+
+### verdict
+
+```
+usage: ojcli.py verdict [-h] [-p PROBLEM] [-l LIMIT | -a]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PROBLEM, --problem PROBLEM
+                        Get verdicts for specific problem. Gets all verdicts if this option is omitted.
+  -l LIMIT, --limit LIMIT
+                        Limits number of returned verdicts. Default is 25 verdicts.
+  -a, --all             Returns all verdicts or all verdicts for problem if specified.
+```
+
+### rank
+
+```
+usage: ojcli.py rank [-h] [-a ABOVE] [-b BELOW] [-C SURROUND] [-n NEXT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -a ABOVE, --above ABOVE
+                        Return usernames and ranks of N users above your rank.
+  -b BELOW, --below BELOW
+                        Return usernames and ranks of N users below your rank.
+  -C SURROUND, --surround SURROUND
+                        Return usernames and ranks of N users above and below your rank.
+  -n NEXT, --next NEXT  Show how many more accepted problems needed to ascend N ranks.
+```
+
+### random
+
+```
+usage: ojcli.py random [-h] [-v VOLUME]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v VOLUME, --volume VOLUME
+                        Restrict random choice to specific problem volume
+```
+
+### progress
+
+```
+usage: ojcli.py progress [-h] [-v VOLUME]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v VOLUME, --volume VOLUME
+                        Restrict progress to specific problem volume
+```
+
+### stats
+
+```
+usage: ojcli.py stats [-h] [-s] [-l]
+
+optional arguments:
+  -h, --help         show this help message and exit
+  -s, --submissions  Only show statistics on submissions
+  -l, --languages    Only show statistics on languages
+```
