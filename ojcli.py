@@ -102,6 +102,7 @@ CFG = None
 USER_ID = None
 BASE_URL = 'https://uhunt.onlinejudge.org/api'
 _HEADERS = {'User-Agent': 'oj-cli-submit'}
+SESSION = None
 
 # Only supporting 8 color mode for now
 ANSI_FG_COLORS = {
@@ -151,15 +152,26 @@ def get_config():
     return cfg
 
 def login(login_url, username, password):
-    login_args = {'user': username, 
-                  'script': 'true',
-                  'password': password}
+    global SESSION
+    SESSION = requests.Session()
+    login_args = {'username': username, 
+                  'passwd': password,
+                  'op2': 'login',
+                  'lang': 'english',
+                  'force_session': '1',
+                  'return': 'B:aHR0cDovL29ubGluZWp1ZGdlLm9yZy8',
+                  'message': '0',
+                  'loginfrom': 'loginmodule',
+                  'cbsecuritym3': 'cbm_4080bf71_5881f4d4_ee8f62c4b2a1b253f511a9d73ffbab0e',
+                  'jaa2fe5e6f92d0d503c113aa0163e51d5': '1',
+                  'remember': 'yes'
+                 }
 
-    return requests.post(login_url, data=login_args, headers=_HEADERS)
+    return SESSION.post(login_url, data=login_args, headers=_HEADERS)
 
 def login_from_config(cfg):
     username = cfg.get('user', 'username')
-    loginurl = 'https://onlinejudge.org/'
+    loginurl = 'https://onlinejudge.org/index.php?option=com_comprofiler&task=login'
     password = None
     try:
         password = cfg.get('user', 'password')
@@ -547,15 +559,25 @@ def pretty_print_stats(sub_data, lan_data):
 # Submit Command
 # ------------------------------------------------------------------------
 def submit_a(args):
-    global CFG
-    problem, ext = os.path.splitext(os.path.basename(args.files[0]))
+    filename, ext = os.path.splitext(os.path.basename(args.files[0]))
     language = LANGUAGE_GUESS.get(ext, None)
+    problem = None
+    try:
+        problem = int(filename)
+    except ValueError:
+        pass
 
     if args.problem:
         problem = args.problem
 
     if args.language:
         language = args.language
+
+    if problem is None:
+        print('''\
+No problem number specified, and I failed to guess the problem 
+number from filename "%s"''' % (filename,))
+        sys.exit(1)
 
     if language is None:
         print('''\
@@ -566,6 +588,20 @@ extension "%s"''' % (ext,))
     langnum = LANGUAGE_VALUES[language]
     files = list(set(args.files))
 
+    submit(problem, langnum, files)
+
+def submit(problem, language, files):
+    global CFG
+    global SESSION
+
+    ptitle = PROBLEM_DATA[PNUM_TO_PID[problem]][2]
+    print('\n')
+    print(f'Submitting solution for problem {problem} - {ptitle}...')
+    print('Submit solution? (y/N)?')
+    if sys.stdin.readline().upper()[:-1] != 'Y':
+        print('Submission aborted. Exiting.')
+        sys.exit(1)
+
     try:
         login_reply = login_from_config(CFG)
     except ConfigError as exc:
@@ -575,24 +611,15 @@ extension "%s"''' % (ext,))
         print('Login connection failed:', err)
         sys.exit(1)
 
-    if not login_reply.status_code == 200:
-        print('Login failed.')
-        if login_reply.status_code == 403:
-            print('Incorrect username or password/token (403)')
-        elif login_reply.status_code == 404:
-            print('Incorrect login URL (404)')
-        else:
-            print('Status code:', login_reply.status_code)
+    plain_result = login_reply.content.decode('utf-8').replace('<br />', '\n')
+    if not 'Logout' in plain_result:
+        print('Login failed!')
         sys.exit(1)
 
-    submit(login_reply.cookies, problem, langnum, files)
-
-def submit(cookies, problem, language, files):
-    submit_url = 'https://onlinejudge.org/index.php?option=com_onlinejudge&Itemid=25'
+    submit_url = 'https://onlinejudge.org/index.php?option=com_onlinejudge&Itemid=25&page=save_submission'
     data = {'submit': 'true',
             'language': language,
-            'localid': problem,
-            'script': 'true'}
+            'localid': problem}
 
     codeupl = []
     for f in files:
@@ -603,23 +630,16 @@ def submit(cookies, problem, language, files):
                                'application/octet-stream')))
 
     try:
-        result = requests.post(submit_url, data=data, files=codeupl, cookies=cookies, headers=_HEADERS)
+        result = SESSION.post(submit_url, data=data, files=codeupl, headers=_HEADERS)
     except requests.exceptions.RequestException as err:
         print('Submit connection failed:', err)
         sys.exit(1)
 
-    if result.status_code != 200:
-        print('Submission failed.')
-        if result.status_code == 403:
-            print('Access denied (403)')
-        elif result.status_code == 404:
-            print('Incorrect submit URL (404)')
-        else:
-            print('Status code:', login_reply.status_code)
-        sys.exit(1)
-
     plain_result = result.content.decode('utf-8').replace('<br />', '\n')
-    print(plain_result)
+    if 'You need to login' in plain_result:
+        print('Submission failed!')
+    else:
+        print(f'Successfully submitted solution for problem {problem} - {ptitle}!')
 # ------------------------------------------------------------------------
 
 
@@ -824,6 +844,7 @@ def main():
         help="Specify problem(overrides problem best guess)")
     submit_parser.add_argument('-l', '--language', 
         help="Specify programming language (overrides language best guess)")
+    submit_parser.add_argument('files', nargs='+')
     submit_parser.set_defaults(func=submit_a)
 
     # verdict sub-comand options
