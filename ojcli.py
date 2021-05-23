@@ -527,6 +527,15 @@ def pretty_print_stats(sub_data, lan_data):
             line += '%4d submissions [%2d%%] \u2551' % (sub_data[key], ticks[i])
             print(line)
             i += 1
+
+        line = '\u2551 '
+        cline = '%18s ' % 'TOTAL'
+        cline += (' ' * (64))
+        cline += '%5d submissions' % (total_subs)
+        line += add_decoration(cline, 'bold') 
+        line += '       \u2551'
+        print(line)
+
         bottom = '\u255A' + ('\u2550' * 108) + '\u255D'
         print(bottom)
         print('\n')
@@ -548,6 +557,14 @@ def pretty_print_stats(sub_data, lan_data):
             line += '%4d submissions [%2d%%] \u2551' % (lan_data[key], ticks[i])
             print(line)
             i += 1
+        line = '\u2551 '
+        cline = '%8s ' % 'TOTAL'
+        cline += (' ' * (48))
+        cline += '%5d submissions' % (total_subs)
+        line += add_decoration(cline, 'bold') 
+        line += '       \u2551'
+        print(line)
+
         bottom = '\u255A' + ('\u2550' * 82) + '\u255D'
         print(bottom)
         print('\n')
