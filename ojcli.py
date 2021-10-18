@@ -11,6 +11,8 @@ import webbrowser
 import requests
 import requests.exceptions
 
+from bs4 import BeautifulSoup
+
 LANGUAGE_GUESS = {
     '.c': 'ANSI C',
     '.c++': 'C++',
@@ -101,6 +103,7 @@ PID_TO_PNUM = None
 CFG = None
 USER_ID = None
 BASE_URL = 'https://uhunt.onlinejudge.org/api'
+LOGIN_URL = 'https://onlinejudge.org/index.php?option=com_comprofiler&task=login'
 _HEADERS = {'User-Agent': 'oj-cli-submit'}
 SESSION = None
 
@@ -151,27 +154,26 @@ def get_config():
                 ensure you have created one.''')
     return cfg
 
-def login(login_url, username, password):
+def login(username, password):
     global SESSION
     SESSION = requests.Session()
-    login_args = {'username': username, 
+    login_args = {'username': username,
                   'passwd': password,
-                  'op2': 'login',
-                  'lang': 'english',
-                  'force_session': '1',
-                  'return': 'B:aHR0cDovL29ubGluZWp1ZGdlLm9yZy8',
-                  'message': '0',
-                  'loginfrom': 'loginmodule',
-                  'cbsecuritym3': 'cbm_4080bf71_5881f4d4_ee8f62c4b2a1b253f511a9d73ffbab0e',
-                  'jaa2fe5e6f92d0d503c113aa0163e51d5': '1',
                   'remember': 'yes'
                  }
 
-    return SESSION.post(login_url, data=login_args, headers=_HEADERS)
+    # Get hidden form data from HTML
+    html_data = requests.get(LOGIN_URL, headers=_HEADERS)
+    soup = BeautifulSoup(html_data.content, 'html.parser')
+    form = soup.find('form', {'id': 'mod_loginform'})
+    inputs = form.find_all('input', {'type': 'hidden'})
+    for input in inputs:
+        login_args[input['name']] = input['value']
+
+    return SESSION.post(LOGIN_URL, data=login_args, headers=_HEADERS)
 
 def login_from_config(cfg):
     username = cfg.get('user', 'username')
-    loginurl = 'https://onlinejudge.org/index.php?option=com_comprofiler&task=login'
     password = None
     try:
         password = cfg.get('user', 'password')
@@ -179,7 +181,7 @@ def login_from_config(cfg):
         raise ConfigError('''
                 No password found in config file!''')
 
-    return login(loginurl, username, password)
+    return login(username, password)
 
 def get_userid(name):
     name_api = f'/uname2uid/{name}'
@@ -656,7 +658,7 @@ def submit(problem, language, files):
     if 'You need to login' in plain_result:
         print('Submission failed!')
     else:
-        print(f'Successfully submitted solution for problem {problem} - {ptitle}!')
+        print(f'Successfully submitted solution for problem {problem} - {ptitle}.')
 # ------------------------------------------------------------------------
 
 
@@ -858,7 +860,7 @@ def main():
     # sumbit sub-comand options
     submit_parser = subparsers.add_parser("submit", help="Submit a solution")
     submit_parser.add_argument('-p', '--problem', type=int,
-        help="Specify problem(overrides problem best guess)")
+        help="Specify problem (overrides problem best guess)")
     submit_parser.add_argument('-l', '--language', 
         help="Specify programming language (overrides language best guess)")
     submit_parser.add_argument('files', nargs='+')
