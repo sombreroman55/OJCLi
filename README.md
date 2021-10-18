@@ -11,7 +11,7 @@ store your login information (my understanding is that plaintext is bad).
 
 # Dependencies
 
-This program is written for Python 3.5+, and will therefore not work with Python 2. Its only dependency is the `requests` module. 
+This program is written for Python 3.5+, and will therefore not work with Python 2. It depends on the `requests` module and the `BeautifulSoup` module. 
 
 # Using the Client
 
