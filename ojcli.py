@@ -157,20 +157,18 @@ def get_config():
 def login(username, password):
     global SESSION
     SESSION = requests.Session()
+    login_args = {'username': username,
+                  'passwd': password,
+                  'remember': 'yes'
+                 }
 
     # Get hidden form data from HTML
     html_data = requests.get(LOGIN_URL, headers=_HEADERS)
     soup = BeautifulSoup(html_data.content, 'html.parser')
     form = soup.find('form', {'id': 'mod_loginform'})
     inputs = form.find_all('input', {'type': 'hidden'})
-    login_args = {'username': username,
-                  'passwd': password,
-                  'remember': 'yes'
-                 }
     for input in inputs:
-        name = input['name']
-        value = input['value']
-        login_args[name] = value
+        login_args[input['name']] = input['value']
 
     return SESSION.post(LOGIN_URL, data=login_args, headers=_HEADERS)
 
