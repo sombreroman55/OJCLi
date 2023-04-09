@@ -1,24 +1,30 @@
 # OJCLi
 
-A command line program that allows you to submit a solution to the (formerly UVa) Online Judge from the command line. 
-Inspired by [Kattis' submission script](https://github.com/Kattis/kattis-cli), though this program allows for more actions than just submission of solutions.
+A command line program that allows you to submit a solution to the (formerly UVa) Online Judge from
+the command line. Inspired by [Kattis' submission script](https://github.com/Kattis/kattis-cli),
+though this program allows for more actions than just submission of solutions by taking advantage of
+Felix Halim's very useful [uHunt API](https://uhunt.onlinejudge.org/api).
 
 # Login Information
+The program looks for a file called `.ojrc` which is just a simple text file that should be stored
+either in the home directory or in the same directory as this program. The file should look like
+this:
 
-The program looks for a file called `.ojrc` which is just a simple text file that should be stored either in the home directory or in the same directory as this program. 
-Create this file in a text editor and put your Online Judge username and password each on their own line. Hopefully later I will think of a more secure way for you to 
-store your login information (my understanding is that plaintext is bad).
+```text
+[user]
+username = <your-username>
+password = <your-password>
+```
 
 # Dependencies
-
-This program is written for Python 3.5+, and will therefore not work with Python 2. It depends on the `requests` module and the `BeautifulSoup` module. 
+This program is written for Python 3.5+, and will therefore not work with Python 2. It depends on
+the `requests` module and the `BeautifulSoup` module.
 
 # Using the Client
-
 ```
 usage: ojcli.py [-h] {submit,verdict,rank,random,progress,stats} ...
 
-Perform Online Judge actions from the command line
+Perform UVa Online Judge actions from the command line
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -36,7 +42,6 @@ subcommands:
 ```
 
 ### submit
-
 ```
 usage: ojcli.py submit [-h] [-p PROBLEM] [-l LANGUAGE] files [files ...]
 
@@ -53,7 +58,6 @@ optional arguments:
 ```
 
 ### verdict
-
 ```
 usage: ojcli.py verdict [-h] [-p PROBLEM] [-l LIMIT | -a]
 
@@ -67,7 +71,6 @@ optional arguments:
 ```
 
 ### rank
-
 ```
 usage: ojcli.py rank [-h] [-a ABOVE] [-b BELOW] [-C SURROUND] [-n NEXT]
 
@@ -83,7 +86,6 @@ optional arguments:
 ```
 
 ### random
-
 ```
 usage: ojcli.py random [-h] [-v VOLUME]
 
@@ -94,7 +96,6 @@ optional arguments:
 ```
 
 ### progress
-
 ```
 usage: ojcli.py progress [-h] [-v VOLUME]
 
@@ -105,7 +106,6 @@ optional arguments:
 ```
 
 ### stats
-
 ```
 usage: ojcli.py stats [-h] [-s] [-l]
 

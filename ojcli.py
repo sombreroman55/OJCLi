@@ -83,10 +83,10 @@ VERDICT_COLORS = {
 
 PROBLEM_VOLUMES = {
       1:100,   2:100,   3:100,   4:100,   5:100,
-      6:100,   7:100,   8:100,   9:100,  10:100, 
+      6:100,   7:100,   8:100,   9:100,  10:100,
      11:100,  12:100,  13:100,  14:100,  15:100,
      16:100,  17: 61,
-        
+
     100:100, 101:100, 102:100, 103:100, 104:100,
     105:100, 106:100, 107:100, 108:100, 109:100,
     110:100, 111:100, 112:100, 113:100, 114:100,
@@ -149,8 +149,8 @@ def get_config():
     if not cfg.read([os.path.join(os.getenv('HOME'), '.ojrc'),
                      os.path.join(os.path.dirname(sys.argv[0]), '.ojrc')]):
         raise ConfigError('''\
-                Failed to read config file from the home directory 
-                or from the same directory as this script. Please 
+                Failed to read config file from the home directory
+                or from the same directory as this script. Please
                 ensure you have created one.''')
     return cfg
 
@@ -220,7 +220,7 @@ def get_problem_data():
 def create_problem_lookups():
     global PROBLEM_DATA
     global PNUM_TO_PID
-    global PID_TO_PNUM 
+    global PID_TO_PNUM
 
     PNUM_TO_PID = dict()
     PID_TO_PNUM = dict()
@@ -277,8 +277,8 @@ def pretty_print_verdict(vdata):
     verdict_headers = ['PROBLEM', 'VERDICT', 'LANG', 'TIME', 'RANK', 'SUBMIT TIME']
 
     col_widths = [-1] * 6
-    table_data = [None] * 6 
-    table_dlen = [None] * 6 
+    table_data = [None] * 6
+    table_dlen = [None] * 6
 
     for i in range(6):
         table_data[i] = list()
@@ -534,7 +534,7 @@ def pretty_print_stats(sub_data, lan_data):
         cline = '%18s ' % 'TOTAL'
         cline += (' ' * (64))
         cline += '%5d submissions' % (total_subs)
-        line += add_decoration(cline, 'bold') 
+        line += add_decoration(cline, 'bold')
         line += '       \u2551'
         print(line)
 
@@ -545,7 +545,7 @@ def pretty_print_stats(sub_data, lan_data):
     if lan_data:
         if not sub_data:
             print('\n')
-        title = '\u2554' + ('\u2550' * 30) + ' LANGUAGE STATISTICS ' + ('\u2550' * 31) + '\u2557'
+        title = '\u2554' + ('\u2550' * 30) + ' LANGUAGE STATISTICS ' + ('\u2550' * 30) + '\u2557'
         print(title)
         lan_data = {k: v for k, v in sorted(lan_data.items(), key=lambda x: x[1], reverse=True)}
         ticks = [(lan_data[x] * 100) // total_subs for x in lan_data]
@@ -561,13 +561,13 @@ def pretty_print_stats(sub_data, lan_data):
             i += 1
         line = '\u2551 '
         cline = '%8s ' % 'TOTAL'
-        cline += (' ' * (48))
+        cline += (' ' * (47))
         cline += '%5d submissions' % (total_subs)
-        line += add_decoration(cline, 'bold') 
+        line += add_decoration(cline, 'bold')
         line += '       \u2551'
         print(line)
 
-        bottom = '\u255A' + ('\u2550' * 82) + '\u255D'
+        bottom = '\u255A' + ('\u2550' * 81) + '\u255D'
         print(bottom)
         print('\n')
 # ------------------------------------------------------------------------
@@ -594,7 +594,7 @@ def submit_a(args):
 
     if problem is None:
         print('''\
-No problem number specified, and I failed to guess the problem 
+No problem number specified, and I failed to guess the problem
 number from filename "%s"''' % (filename,))
         sys.exit(1)
 
@@ -733,7 +733,7 @@ def rank(above=0, below=0, _next=0):
         data = response.json()
         acs_needed = data[0]['ac'] - data[-1]['ac']
         desired_rank = data[0]['rank']
-        line = 'Need ' 
+        line = 'Need '
         line += add_fg_color(f'{acs_needed}', 'green')
         line += f' more accepted solutions to reach rank {desired_rank}.\n'
         pretty_print_rank(rdata)
@@ -765,7 +765,7 @@ def random_prb(volume=None):
 
     problem_api = f'/p/num/{problem_vol_num}'
     full_api = BASE_URL + problem_api
-    
+
     response = requests.get(full_api)
     response_json = response.json()
     num = response_json['num']
@@ -861,7 +861,7 @@ def main():
     submit_parser = subparsers.add_parser("submit", help="Submit a solution")
     submit_parser.add_argument('-p', '--problem', type=int,
         help="Specify problem (overrides problem best guess)")
-    submit_parser.add_argument('-l', '--language', 
+    submit_parser.add_argument('-l', '--language',
         help="Specify programming language (overrides language best guess)")
     submit_parser.add_argument('files', nargs='+')
     submit_parser.set_defaults(func=submit_a)
